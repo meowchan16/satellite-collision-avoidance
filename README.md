@@ -8,11 +8,11 @@ An autonomous satellite collision-avoidance system integrating physics simulatio
 
 To allow seamless parallel development without Git merge conflicts, the system is split into independent modular components:
 
-| Member | Assigned Component | Key Responsibilities & Files |
-| :--- | :--- | :--- |
-| **Member 1** | **Physics & Kinematics Engine** | Orbital relative motion propagation, Clohessy-Wiltshire dynamics, trajectory tracking (`core/physics.py`). |
-| **Member 2** | **Bayesian Risk & Decision Engine** | Sensor measurement noise propagation, $P_{\text{collision}}$ calculation, rule-based state machine (`core/bayesian_risk.py`, `core/decision_engine.py`). |
-| **Member 3** | **A* Path Planner & Dashboard UI** | Fuel-optimal dynamic trajectory generation, interactive Streamlit & Plotly 3D visualizer (`core/path_planner.py`, `app.py`). |
+| Collaborator | GitHub Profile | Assigned Component | Key Responsibilities & Files |
+| :--- | :--- | :--- | :--- |
+| **meowchan16** | [@meowchan16](https://github.com/meowchan16) | **A* Path Planner & UI Dashboard** | Fuel-optimal dynamic trajectory generation, interactive Streamlit & Plotly 3D visualizer (`core/path_planner.py`, `app.py`). |
+| **Simran Bishnoi** | [@Simranbishnoi](https://github.com/Simranbishnoi) | **Physics & Kinematics Engine** | Orbital relative motion propagation, Clohessy-Wiltshire dynamics, trajectory tracking (`core/physics.py`). |
+| **Greeshma** | [@greeshmaa965-cell](https://github.com/greeshmaa965-cell) | **Bayesian Risk & Decision Engine** | Sensor measurement noise propagation, $P_{\text{collision}}$ calculation, rule-based state machine (`core/bayesian_risk.py`, `core/decision_engine.py`). |
 
 ---
 
@@ -32,8 +32,8 @@ To allow seamless parallel development without Git merge conflicts, the system i
 
 ```bash
 # Clone the repository
-git clone <YOUR-GITHUB-REPO-URL>
-cd "Satellite Collision Risk & Debris Avoidance Simulator"
+git clone https://github.com/meowchan16/satellite-collision-avoidance.git
+cd satellite-collision-avoidance
 
 # Create & activate virtual environment
 python -m venv venv
