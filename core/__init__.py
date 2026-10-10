@@ -16,6 +16,7 @@ from core.conjunction import find_tca
 from core.bayesian_risk import calculate_collision_probability, BayesianRiskEngine
 from core.decision_engine import evaluate_risk, DecisionEngine, DecisionState
 from core.edge_triage import OnboardSensorFrame, EdgeAITriageEngine, TriageDecision
+from core.maneuver_sim import execute_evasive_maneuver, calculate_new_trajectory
 
 __all__ = [
     "SpaceObject",
@@ -35,5 +36,7 @@ __all__ = [
     "OnboardSensorFrame",
     "EdgeAITriageEngine",
     "TriageDecision",
+    "execute_evasive_maneuver",
+    "calculate_new_trajectory",
 ]
 
