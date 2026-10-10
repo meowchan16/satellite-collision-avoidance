@@ -12,6 +12,7 @@ from core.bayesian_risk import calculate_collision_probability
 from core.decision_engine import evaluate_risk, DecisionState
 from core.path_planner import AStarPathPlanner
 from core.edge_triage import OnboardSensorFrame, EdgeAITriageEngine
+from core.maneuver_sim import execute_evasive_maneuver, calculate_new_trajectory
 
 # ---------------------------------------------------------------------------
 # Page Config
@@ -256,7 +257,7 @@ footer {{visibility: hidden;}}
 """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
-# Sidebar Mission Settings
+# Sidebar Mission Settings & Threat Injection
 # ---------------------------------------------------------------------------
 with st.sidebar:
     st.markdown("<p style='font-family: JetBrains Mono; font-size: 12px; letter-spacing: 3px; color: #f97316;'>// MISSION PARAMETERS</p>", unsafe_allow_html=True)
@@ -269,26 +270,133 @@ with st.sidebar:
     remaining_fuel = st.slider("AVAILABLE ΔV THRUST UNITS", 0.0, 100.0, 85.0, step=5.0)
     enable_triage = st.checkbox("RUN ONBOARD EDGE AI TRIAGE", value=True)
 
+    st.markdown("<hr style='border: 1px solid rgba(255,255,255,0.08); margin: 20px 0;'>", unsafe_allow_html=True)
+    st.markdown("<p style='font-family: JetBrains Mono; font-size: 13px; font-weight: 700; letter-spacing: 2px; color: #38bdf8;'>🛰️ INJECT NEW OBJECT</p>", unsafe_allow_html=True)
+
+    injected_name = st.text_input("Object Designation", value="Unknown Debris 01")
+    default_sample_tle = """1 34123U 93036AR  24079.91234567  .00000452  00000-0  85231-4 0  9997
+2 34123  74.0321  45.1234 0021456 120.3456 240.5678 14.32145678789018"""
+    injected_tle_raw = st.text_area("Paste Raw TLE (Line 1 & 2)", value=default_sample_tle, height=85)
+    
+    simulate_injected_btn = st.button("Simulate Trajectory", type="primary")
+
+# Initialize session_state defaults
+if "custom_encounter_active" not in st.session_state:
+    st.session_state.custom_encounter_active = False
+if "custom_results" not in st.session_state:
+    st.session_state.custom_results = {}
+
+# Protected Satellite (ISS)
+now_utc = datetime(2024, 3, 20, 12, 0, 0, tzinfo=timezone.utc)
+l1_iss = "1 25544U 98067A   24080.52847222  .00016717  00000-0  10270-3 0  9014"
+l2_iss = "2 25544  51.6416 179.3783 0004948 290.4121 161.2721 15.49842410444344"
+iss_tle = parse_tle_lines("ISS (ZARYA)", l1_iss, l2_iss)
+protected_satellite = SpaceObject.from_tle(iss_tle, epoch=now_utc)
+
+# Handle Injected Threat Simulation
+if simulate_injected_btn:
+    try:
+        tle_lines = [l.strip() for l in injected_tle_raw.strip().splitlines() if l.strip()]
+        if len(tle_lines) < 2:
+            st.sidebar.error("Error: Please provide at least 2 lines for the TLE.")
+        else:
+            injected_parsed = parse_tle_lines(injected_name, tle_lines[0], tle_lines[1], object_type="DEBRIS")
+            injected_debris = SpaceObject.from_tle(injected_parsed, epoch=now_utc)
+
+            # Run TCA Finder
+            tca_results = find_tca(protected_satellite, injected_debris, now_utc, window_minutes=20.0)
+            tca_time = tca_results["tca_time"]
+            tca_miss_dist = tca_results["miss_distance_km"]
+            tca_rel_vel = tca_results["relative_velocity_km_s"]
+
+            # Compute Bayesian Collision Probability
+            p_c = calculate_collision_probability(
+                miss_distance_km=tca_miss_dist,
+                sigma_km=sensor_noise,
+                hard_body_radius_m=6.5
+            )
+
+            # Evaluate Autonomous Decision
+            dec = evaluate_risk(
+                p_collision=p_c,
+                miss_distance_km=tca_miss_dist,
+                fuel_remaining_delta_v=remaining_fuel
+            )
+
+            # Check if collision risk requires maneuver
+            maneuver_log = []
+            new_orbit_traj = None
+            maneuver_details = None
+
+            if p_c > 1e-4 or dec in ["PLAN_EVASIVE_MANEUVER", "EMERGENCY_AVOIDANCE"]:
+                burn_dv = 5.0  # standard avoidance delta-V
+                new_v, maneuver_details = execute_evasive_maneuver(
+                    current_pos=protected_satellite.position,
+                    current_vel=protected_satellite.velocity,
+                    delta_v_magnitude=burn_dv,
+                    burn_direction="prograde"
+                )
+                new_orbit_traj = calculate_new_trajectory(
+                    tle=protected_satellite,
+                    maneuver_time=now_utc,
+                    delta_v=burn_dv,
+                    duration_minutes=45.0,
+                    step_seconds=60.0
+                )
+                maneuver_log.append(f"AI TRIGGER: Collision Risk Detected (P_c = {p_c:.2e}).")
+                maneuver_log.append(f"ACTION: {maneuver_details['burn_executed']} fired.")
+                maneuver_log.append(f"NEW ORBIT: {maneuver_details['new_orbit']}.")
+            else:
+                maneuver_log.append(f"AI ASSESSMENT: Conjunction nominal. Safe miss distance of {tca_miss_dist:.2f} km.")
+
+            st.session_state.custom_encounter_active = True
+            st.session_state.custom_results = {
+                "name": injected_name,
+                "miss_distance_km": tca_miss_dist,
+                "relative_velocity_km_s": tca_rel_vel,
+                "tca_time": tca_time,
+                "p_collision": p_c,
+                "decision": dec,
+                "maneuver_details": maneuver_details,
+                "new_orbit_traj": new_orbit_traj,
+                "maneuver_log": maneuver_log,
+            }
+            st.sidebar.success(f"Simulated {injected_name} successfully!")
+    except Exception as e:
+        st.sidebar.error(f"TLE Parse Error: {e}")
+
 # ---------------------------------------------------------------------------
 # Core Astrodynamics & Conjunction Calculation
 # ---------------------------------------------------------------------------
-now_utc = datetime(2024, 3, 20, 12, 0, 0, tzinfo=timezone.utc)
-miss_distance_km = 0.38
-rel_vel_km_s = 14.28
+if st.session_state.custom_encounter_active and st.session_state.custom_results:
+    res = st.session_state.custom_results
+    miss_distance_km = res["miss_distance_km"]
+    rel_vel_km_s = res["relative_velocity_km_s"]
+    p_coll = res["p_collision"]
+    decision = res["decision"]
+    active_debris_name = res["name"]
+    maneuver_log = res["maneuver_log"]
+    new_orbit_traj = res.get("new_orbit_traj")
+else:
+    miss_distance_km = 0.38
+    rel_vel_km_s = 14.28
+    active_debris_name = "COSMOS-2251 DEBRIS"
+    maneuver_log = []
+    new_orbit_traj = None
 
-# Bayesian Risk
-p_coll = calculate_collision_probability(
-    miss_distance_km=miss_distance_km,
-    sigma_km=sensor_noise,
-    hard_body_radius_m=6.5
-)
+    # Bayesian Risk
+    p_coll = calculate_collision_probability(
+        miss_distance_km=miss_distance_km,
+        sigma_km=sensor_noise,
+        hard_body_radius_m=6.5
+    )
 
-# Decision Engine
-decision = evaluate_risk(
-    p_collision=p_coll,
-    miss_distance_km=miss_distance_km,
-    fuel_remaining_delta_v=remaining_fuel
-)
+    # Decision Engine
+    decision = evaluate_risk(
+        p_collision=p_coll,
+        miss_distance_km=miss_distance_km,
+        fuel_remaining_delta_v=remaining_fuel
+    )
 
 # A* Path Planner
 planner = AStarPathPlanner(step_size=0.4, safety_margin_km=1.2)
@@ -385,10 +493,10 @@ fig.add_trace(go.Scatter3d(
     x=[deb_pos[0]], y=[deb_pos[1]], z=[deb_pos[2]],
     mode='markers+text',
     marker=dict(size=9, color='#ef4444', symbol='diamond', line=dict(color='#fca5a5', width=1.5)),
-    text=['COSMOS-2251 DEBRIS'],
+    text=[active_debris_name.upper()],
     textfont=dict(family='JetBrains Mono', size=11, color='#ef4444'),
     textposition='bottom center',
-    name='Debris Fragment'
+    name=active_debris_name
 ))
 
 # 3. Translucent Keep-Out Safety Bubble
@@ -416,6 +524,18 @@ fig.add_trace(go.Scatter3d(
     name='A* Evasive Path'
 ))
 
+# 5. Display New Propagated Orbit if Maneuver Burn Executed
+if new_orbit_traj is not None and len(new_orbit_traj) > 0:
+    new_traj_arr = np.array(new_orbit_traj)
+    # Scale/center slightly for local spatial scene overlay
+    traj_scaled = (new_traj_arr - new_traj_arr[0]) * 0.05 + sat_pos
+    fig.add_trace(go.Scatter3d(
+        x=traj_scaled[:, 0], y=traj_scaled[:, 1], z=traj_scaled[:, 2],
+        mode='lines',
+        line=dict(color='#38bdf8', width=3, dash='dash'),
+        name='Post-Burn Propagated Orbit'
+    ))
+
 fig.update_layout(
     scene=dict(
         xaxis=dict(showgrid=True, gridcolor='rgba(255,255,255,0.06)', backgroundcolor='rgba(0,0,0,0)', title='X (km)'),
@@ -433,6 +553,16 @@ fig.update_layout(
 )
 
 st.plotly_chart(fig, use_container_width=True)
+
+# Render AI Action & Maneuver Telemetry Log if custom threat injected
+if maneuver_log:
+    st.markdown('<div class="poster-number">// AUTONOMOUS ACTION LOG & BURN TELEMETRY</div>', unsafe_allow_html=True)
+    log_content = "".join([f"<div style='margin-bottom: 6px; font-family: JetBrains Mono; font-size: 13px;'>▶ {item}</div>" for item in maneuver_log])
+    st.markdown(f"""
+    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 8px; padding: 18px 22px; margin-bottom: 30px; box-shadow: 0 0 20px rgba(56, 189, 248, 0.1);">
+        {log_content}
+    </div>
+    """, unsafe_allow_html=True)
 
 # ---------------------------------------------------------------------------
 # Onboard Edge AI Data Triage Section
