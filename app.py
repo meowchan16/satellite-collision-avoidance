@@ -21,72 +21,89 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Deep space typography, frosted glass, glowing borders, and planetary aesthetics
+st.markdown("""
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+""", unsafe_allow_html=True)
+
+# 2. Custom CSS for a premium HUD look
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Cinzel:wght@400;600;700&family=Space+Grotesk:wght@300;400;500;700&family=JetBrains+Mono:wght@300;400;500&display=swap');
-
-/* 1. Main Background */
-.stApp {
-    background-color: #0B0E14;
-    background-image: radial-gradient(circle at 50% 50%, #1A2332 0%, #0B0E14 100%);
-    color: #E0E0E0;
-    font-family: 'Space Grotesk', -apple-system, sans-serif;
-}
-
-/* 2. Glassmorphism Metric Cards */
-div.css-1r6slb0, div.stMetric, [data-testid="stMetric"] {
-    background: rgba(17, 24, 39, 0.7);
-    border: 1px solid rgba(0, 229, 255, 0.2);
-    border-radius: 10px;
-    padding: 15px;
-    box-shadow: 0 0 15px rgba(0, 229, 255, 0.1);
-    backdrop-filter: blur(10px);
-}
-
-/* 3. Neon Orbitron Headings */
-h1, h2, h3 {
-    color: #00E5FF !important;
-    font-family: 'Orbitron', sans-serif !important;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    text-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
-}
-
-/* 4. Alert Styling (For Decision Engine) */
-.alert-emergency {
-    color: #FF3366 !important;
-    font-weight: bold;
-    border: 1px solid #FF3366 !important;
-    padding: 6px 14px;
-    border-radius: 6px;
-    background: rgba(255, 51, 102, 0.15) !important;
-    box-shadow: 0 0 12px rgba(255, 51, 102, 0.4);
-    font-family: 'Orbitron', monospace;
-    display: inline-block;
-}
-.alert-warning {
-    color: #FFB800 !important;
-    font-weight: bold;
-    border: 1px solid #FFB800 !important;
-    padding: 6px 14px;
-    border-radius: 6px;
-    background: rgba(255, 184, 0, 0.15) !important;
-    box-shadow: 0 0 12px rgba(255, 184, 0, 0.4);
-    font-family: 'Orbitron', monospace;
-    display: inline-block;
-}
-.alert-safe {
-    color: #00FF9D !important;
-    font-weight: bold;
-    border: 1px solid #00FF9D !important;
-    padding: 6px 14px;
-    border-radius: 6px;
-    background: rgba(0, 255, 157, 0.15) !important;
-    box-shadow: 0 0 12px rgba(0, 255, 157, 0.4);
-    font-family: 'Orbitron', monospace;
-    display: inline-block;
-}
+    /* Background */
+    .stApp {
+        background: radial-gradient(circle at center, #0a111f 0%, #02040a 100%);
+        color: #a3b8cc;
+        font-family: 'Roboto Mono', monospace;
+    }
+    
+    /* Headings */
+    h1, h2, h3 {
+        font-family: 'Orbitron', sans-serif !important;
+        color: #ffffff !important;
+        letter-spacing: 2px;
+        text-shadow: 0 0 10px rgba(0, 229, 255, 0.3);
+    }
+    
+    /* Metric Cards (Glassmorphism) */
+    div[data-testid="stMetric"], .hud-card {
+        background: rgba(10, 20, 40, 0.6) !important;
+        border: 1px solid rgba(0, 229, 255, 0.2) !important;
+        border-radius: 8px !important;
+        padding: 20px !important;
+        backdrop-filter: blur(10px) !important;
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(0, 229, 255, 0.05) !important;
+        transition: all 0.3s ease !important;
+    }
+    div[data-testid="stMetric"]:hover, .hud-card:hover {
+        border-color: rgba(0, 229, 255, 0.6) !important;
+        box-shadow: 0 0 15px rgba(0, 229, 255, 0.2) !important;
+    }
+    
+    /* Alert Boxes */
+    .alert-red {
+        background: rgba(255, 51, 102, 0.1) !important;
+        border: 1px solid #ff3366 !important;
+        color: #ff3366 !important;
+        padding: 10px 16px !important;
+        border-radius: 5px !important;
+        font-family: 'Roboto Mono', monospace !important;
+        text-align: center !important;
+        box-shadow: 0 0 15px rgba(255, 51, 102, 0.3) !important;
+        font-weight: 600;
+        letter-spacing: 1.5px;
+        display: inline-block;
+        width: 100%;
+        margin-bottom: 20px;
+    }
+    .alert-warn {
+        background: rgba(255, 184, 0, 0.1) !important;
+        border: 1px solid #ffb800 !important;
+        color: #ffb800 !important;
+        padding: 10px 16px !important;
+        border-radius: 5px !important;
+        font-family: 'Roboto Mono', monospace !important;
+        text-align: center !important;
+        box-shadow: 0 0 15px rgba(255, 184, 0, 0.3) !important;
+        font-weight: 600;
+        letter-spacing: 1.5px;
+        display: inline-block;
+        width: 100%;
+        margin-bottom: 20px;
+    }
+    .alert-green {
+        background: rgba(0, 255, 157, 0.1) !important;
+        border: 1px solid #00ff9d !important;
+        color: #00ff9d !important;
+        padding: 10px 16px !important;
+        border-radius: 5px !important;
+        font-family: 'Roboto Mono', monospace !important;
+        text-align: center !important;
+        box-shadow: 0 0 15px rgba(0, 255, 157, 0.3) !important;
+        font-weight: 600;
+        letter-spacing: 1.5px;
+        display: inline-block;
+        width: 100%;
+        margin-bottom: 20px;
+    }
 
 /* Hide standard Streamlit header & decoration */
 header {visibility: hidden;}
@@ -307,29 +324,20 @@ delta_v_cost = planner.calculate_path_delta_v(evasive_path)
 # ---------------------------------------------------------------------------
 # Hero Layout: Left Editorial Typography + Right 3D Planet & Orbit Visual
 # ---------------------------------------------------------------------------
-left_col, right_col = st.columns([1.1, 1.9], gap="large")
+left_col, right_col = st.columns([1, 2], gap="large")
 
 with left_col:
     st.markdown('<div class="hero-tag">ASTRONOMICAL RECONNAISSANCE // CONJUNCTION 01</div>', unsafe_allow_html=True)
-    st.markdown('<div class="hero-title">Orbital<br>Deflection</div>', unsafe_allow_html=True)
-    st.markdown(
-        '<div class="hero-desc">'
-        'Autonomous orbital safety platform executing real-time SGP4 ephemeris propagation, '
-        'probabilistic Bayesian risk evaluation, and onboard edge ML telemetry triage to safeguard '
-        'active spacecraft against hypervelocity kinetic collisions.'
-        '</div>',
-        unsafe_allow_html=True
-    )
+    st.markdown("<h1>ORBITAL DEFLECTION</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='line-height: 1.6; margin-bottom: 20px;'>Autonomous orbital safety platform executing real-time SGP4 ephemeris propagation, probabilistic Bayesian risk evaluation, and onboard edge ML telemetry triage to safeguard active spacecraft against hypervelocity kinetic collisions.</p>", unsafe_allow_html=True)
 
-    # Status Pill
+    # Status Pill / Alert Box
     if decision in ["EMERGENCY_AVOIDANCE", "CRITICAL_NO_FUEL_ALERT"]:
-        pill_html = f'<div class="alert-emergency">CRITICAL HAZARD: {decision}</div>'
+        st.markdown(f'<div class="alert-red">HAZARD LEVEL: {decision}</div>', unsafe_allow_html=True)
     elif decision == "PLAN_EVASIVE_MANEUVER":
-        pill_html = f'<div class="alert-warning">DEFLECTION REQUIRED: {decision}</div>'
+        st.markdown(f'<div class="alert-warn">DEFLECTION REQUIRED: {decision}</div>', unsafe_allow_html=True)
     else:
-        pill_html = f'<div class="alert-safe">STATUS NOMINAL: {decision}</div>'
-    st.markdown(pill_html, unsafe_allow_html=True)
-    st.write("")
+        st.markdown(f'<div class="alert-green">STATUS NOMINAL: {decision}</div>', unsafe_allow_html=True)
 
     # HUD Micro-Metrics
     m1, m2 = st.columns(2)
