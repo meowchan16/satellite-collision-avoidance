@@ -48,6 +48,13 @@ class SpaceObject:
         if self.tle_line1 and self.tle_line2:
             self._init_sgp4()
 
+    @property
+    def tle(self):
+        """Returns tuple of (tle_line1, tle_line2) if available."""
+        if self.tle_line1 and self.tle_line2:
+            return (self.tle_line1, self.tle_line2)
+        return None
+
     def _init_sgp4(self) -> None:
         """Initializes Satrec record from TLE lines."""
         if not (self.tle_line1 and self.tle_line2):

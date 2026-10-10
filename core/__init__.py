@@ -12,6 +12,10 @@ from core.data_ingestion import (
     parse_tle_lines,
     classify_orbit,
 )
+from core.conjunction import find_tca
+from core.bayesian_risk import calculate_collision_probability, BayesianRiskEngine
+from core.decision_engine import evaluate_risk, DecisionEngine, DecisionState
+from core.edge_triage import OnboardSensorFrame, EdgeAITriageEngine, TriageDecision
 
 __all__ = [
     "SpaceObject",
@@ -22,5 +26,14 @@ __all__ = [
     "parse_tle_catalog",
     "parse_tle_lines",
     "classify_orbit",
+    "find_tca",
+    "calculate_collision_probability",
+    "BayesianRiskEngine",
+    "evaluate_risk",
+    "DecisionEngine",
+    "DecisionState",
+    "OnboardSensorFrame",
+    "EdgeAITriageEngine",
+    "TriageDecision",
 ]
 
