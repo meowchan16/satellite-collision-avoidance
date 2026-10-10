@@ -5,3 +5,6 @@ plotly>=5.14.0
 streamlit>=1.22.0
 pandas>=2.0.0
 pytest>=7.3.0
+sgp4>=2.22
+requests>=2.31.0
+
